@@ -35,8 +35,8 @@
 #  define CUTE_DEVICE      __forceinline__          __device__
 #  define CUTE_HOST        __forceinline__ __host__
 #else
-#  define CUTE_HOST_DEVICE inline
-#  define CUTE_DEVICE      inline
+#  define CUTE_HOST_DEVICE [[intel::device_indirectly_callable]] inline 
+#  define CUTE_DEVICE      [[intel::device_indirectly_callable]] inline
 #  define CUTE_HOST        inline
 #endif // CUTE_HOST_DEVICE, CUTE_DEVICE
 
@@ -132,7 +132,13 @@
 // IO
 //
 
-#if !defined(__CUDACC_RTC__)
+#if defined(SYCL_LANGUAGE_VERSION)
+#include <sycl/sycl.hpp>
+namespace cute
+{
+using sycl::ext::oneapi::experimental::printf;
+}
+#elif !defined(__CUDACC_RTC__)
 #include <cstdio>
 #include <iostream>
 #include <iomanip>

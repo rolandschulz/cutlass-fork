@@ -36,12 +36,12 @@
 
 #include <cute/tensor.hpp>
 
-#include "cutlass/util/print_error.hpp"
-#include "cutlass/util/GPU_Clock.hpp"
-#if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
-#  include "cutlass/util/cublas_wrappers.hpp"
-#endif
-#include "cutlass/util/helper_cuda.hpp"
+// #include "cutlass/util/print_error.hpp"
+// #include "cutlass/util/GPU_Clock.hpp"
+// #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
+// #  include "cutlass/util/cublas_wrappers.hpp"
+// #endif
+// #include "cutlass/util/helper_cuda.hpp"
 
 template <class MShape, class NShape, class KShape, class TA, class AStride,
           class ABlockLayout, class AThreadLayout, class TB, class BStride,
@@ -281,9 +281,9 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
                          ceil_div(size(M), size(bM)));
   stream->submit([&](sycl::handler &cgh) {
     sycl::local_accessor<TA, 1> smemA_acc_ct1(
-        sycl::range<1>(cosize_v<ABlockLayout>), cgh);
+        sycl::range<1>(cosize_v<decltype(sA)>), cgh);
     sycl::local_accessor<TB, 1> smemB_acc_ct1(
-        sycl::range<1>(cosize_v<BBlockLayout>), cgh);
+        sycl::range<1>(cosize_v<decltype(sB)>), cgh);
 
     cgh.parallel_for(sycl::nd_range<3>(dimGrid * dimBlock, dimBlock),
                      [=](sycl::nd_item<3> item_ct1) {
@@ -302,7 +302,7 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
 void test_gemm(int m, int n, int k)
 {
   dpct::device_ext &dev_ct1 = dpct::get_current_device();
-  cute::device_init(0);
+  //cute::device_init(0);
 
   std::cout << "M = " << m << std::endl;
   std::cout << "N = " << n << std::endl;
@@ -331,7 +331,7 @@ void test_gemm(int m, int n, int k)
   double gflops = (2.0*m*n*k) * 1e-9;
 
   const int timing_iterations = 100;
-  GPU_Clock timer;
+  //GPU_Clock timer;
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
   //
@@ -346,10 +346,10 @@ void test_gemm(int m, int n, int k)
   blam::cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_T,
                      m, n, k,
                      &alpha,
-                     d_A.data().get(), m,
-                     d_B.data().get(), n,
+                     d_A.data(), m,
+                     d_B.data(), n,
                      &beta,
-                     d_C.data().get(), m);
+                     d_C.data(), m);
   /*
   DPCT1010:5: SYCL uses exceptions to report errors and does not use the error
   codes. The call was replaced with 0. You need to rewrite this code.
@@ -371,17 +371,17 @@ void test_gemm(int m, int n, int k)
   std::vector<TC> cublas_result = d_C;
 
   // Timing iterations
-  timer.start();
+  //timer.start();
   for (int i = 0; i < timing_iterations; ++i) {
     blam::cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_T,
                        m, n, k,
                        &alpha,
-                       d_A.data().get(), m,
-                       d_B.data().get(), n,
+                       d_A.data(), m,
+                       d_B.data(), n,
                        &beta,
-                       d_C.data().get(), m);
+                       d_C.data(), m);
   }
-  double cublas_time = timer.seconds() / timing_iterations;
+  //double cublas_time = timer.seconds() / timing_iterations;
   /*
   DPCT1010:9: SYCL uses exceptions to report errors and does not use the error
   codes. The call was replaced with 0. You need to rewrite this code.
@@ -399,7 +399,7 @@ void test_gemm(int m, int n, int k)
   */
   "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
       ;
-  printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
+  // printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
 
 #else
 
@@ -420,10 +420,10 @@ void test_gemm(int m, int n, int k)
   d_C = h_C;
   gemm(m, n, k,
        alpha,
-       d_A.data().get(), m,
-       d_B.data().get(), n,
+       d_A.data(), m,
+       d_B.data(), n,
        beta,
-       d_C.data().get(), m);
+       d_C.data(), m);
   /*
   DPCT1010:13: SYCL uses exceptions to report errors and does not use the error
   codes. The call was replaced with 0. You need to rewrite this code.
@@ -444,16 +444,16 @@ void test_gemm(int m, int n, int k)
   std::vector<TC> cute_result = d_C;
 
   // Timing iterations
-  timer.start();
+  //timer.start();
   for (int i = 0; i < timing_iterations; ++i) {
     gemm(m, n, k,
          alpha,
-         d_A.data().get(), m,
-         d_B.data().get(), n,
+         d_A.data(), m,
+         d_B.data(), n,
          beta,
-         d_C.data().get(), m);
+         d_C.data(), m);
   }
-  double cute_time = timer.seconds() / timing_iterations;
+  //double cute_time = timer.seconds() / timing_iterations;
   /*
   DPCT1010:17: SYCL uses exceptions to report errors and does not use the error
   codes. The call was replaced with 0. You need to rewrite this code.
@@ -471,7 +471,7 @@ void test_gemm(int m, int n, int k)
   */
   "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
       ;
-  printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
+  //printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
   printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
