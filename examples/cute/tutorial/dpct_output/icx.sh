@@ -1,1 +1,1 @@
-icx -fsycl -Xclang -fsycl-allow-func-ptr sgemm_nt_1.dp.cpp  -I ~/oneDPL/include/ -I ~/cutlass/include/
+icx -fsycl -Xclang -fsycl-allow-func-ptr sgemm_nt_1.dp.cpp  -I ~/oneDPL/include/ -I ~/cutlass/include/ -I ~/cutlass/tools/util/include/ -DCUTLASS_ENABLE_CUBLAS -I$MKLROOT/include -I ~/SYCLomatic/links  -qmkl=sequential

@@ -36,11 +36,12 @@
 
 #include <cute/tensor.hpp>
 
-// #include "cutlass/util/print_error.hpp"
+#include "cutlass/util/print_error.hpp"
 // #include "cutlass/util/GPU_Clock.hpp"
-// #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
+#if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
 // #  include "cutlass/util/cublas_wrappers.hpp"
-// #endif
+#  include "cutlass/util/dpct_output/cublas_wrappers.hpp"
+#endif
 // #include "cutlass/util/helper_cuda.hpp"
 
 template <class MShape, class NShape, class KShape, class TA, class AStride,
@@ -292,7 +293,7 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
                                    (TA *)smemA_acc_ct1.get_pointer(),
                                    (TB *)smemB_acc_ct1.get_pointer());
                      });
-  });
+  }).wait();
 }
 
 #include <cstdlib>
@@ -337,13 +338,12 @@ void test_gemm(int m, int n, int k)
   //
   // cuBLas
   //
-
-  dpct::queue_ptr handle;
-  cublasCreate(&handle);
+  dpct::queue_ptr handle = &dpct::get_in_order_queue();
+  //cublasCreate(&handle);
 
   // Run once
   d_C = h_C;
-  blam::cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_T,
+  blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
                      m, n, k,
                      &alpha,
                      d_A.data(), m,
@@ -373,7 +373,7 @@ void test_gemm(int m, int n, int k)
   // Timing iterations
   //timer.start();
   for (int i = 0; i < timing_iterations; ++i) {
-    blam::cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_T,
+    blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
                        m, n, k,
                        &alpha,
                        d_A.data(), m,
@@ -474,7 +474,7 @@ void test_gemm(int m, int n, int k)
   //printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
-  printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
+  //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
 
   auto host_matrix_to_const_column_major_cute_tensor =
     [](const auto& X, int num_rows, int num_cols, int LDX) {
