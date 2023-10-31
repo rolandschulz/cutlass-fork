@@ -1,1 +1,1 @@
-icx -fsycl -Xclang -fsycl-allow-func-ptr sgemm_nt_1.dp.cpp  -I ~/oneDPL/include/ -I ~/cutlass/include/
+icpx -fsycl -Xclang -fsycl-allow-func-ptr -fsycl-targets=nvptx64-nvidia-cuda,spir64 -Xsycl-target-backend=nvptx64-nvidia-cuda --cuda-gpu-arch=sm_80 sgemm_nt_1.dp.cpp -I ~/oneDPL/include/ -I ~/git/cutlass/tools/util/include -I ~/git/cutlass/include/ -I /usr/local/cuda/targets/x86_64-linux/include/ -O2

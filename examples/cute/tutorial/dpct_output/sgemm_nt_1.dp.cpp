@@ -28,19 +28,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **************************************************************************************************/
-#include <oneapi/dpl/execution>
-#include <oneapi/dpl/algorithm>
+//#include <oneapi/dpl/execution>
+//#include <oneapi/dpl/algorithm>
 #include <sycl/sycl.hpp>
 #include <dpct/dpct.hpp>
 #include <dpct/dpl_utils.hpp>
 
 #include <cute/tensor.hpp>
 
+#include <chrono>
+using test_clock = std::chrono::high_resolution_clock;
+
 // #include "cutlass/util/print_error.hpp"
-// #include "cutlass/util/GPU_Clock.hpp"
-// #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
-// #  include "cutlass/util/cublas_wrappers.hpp"
-// #endif
+//#include "cutlass/util/GPU_Clock.hpp"
+#if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
+#  include "cutlass/util/cublas_wrappers.hpp"
+#endif
 // #include "cutlass/util/helper_cuda.hpp"
 
 template <class MShape, class NShape, class KShape, class TA, class AStride,
@@ -292,7 +295,7 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
                                    (TA *)smemA_acc_ct1.get_pointer(),
                                    (TB *)smemB_acc_ct1.get_pointer());
                      });
-  });
+  }).wait();
 }
 
 #include <cstdlib>
@@ -302,6 +305,11 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
 void test_gemm(int m, int n, int k)
 {
   dpct::device_ext &dev_ct1 = dpct::get_current_device();
+  dpct::device_info deviceProp;
+  dpct::dev_mgr::instance().get_device(0).get_device_info(
+      deviceProp);
+  std::cout << "Running on device: "
+            << deviceProp.get_name() << "\n";
   //cute::device_init(0);
 
   std::cout << "M = " << m << std::endl;
@@ -330,7 +338,7 @@ void test_gemm(int m, int n, int k)
 
   double gflops = (2.0*m*n*k) * 1e-9;
 
-  const int timing_iterations = 100;
+  const int timing_iterations = 2;
   //GPU_Clock timer;
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
@@ -445,6 +453,7 @@ void test_gemm(int m, int n, int k)
 
   // Timing iterations
   //timer.start();
+  auto start = test_clock::now();
   for (int i = 0; i < timing_iterations; ++i) {
     gemm(m, n, k,
          alpha,
@@ -453,6 +462,10 @@ void test_gemm(int m, int n, int k)
          beta,
          d_C.data(), m);
   }
+  dpct::get_in_order_queue().wait();
+  auto end = test_clock::now();
+  std::chrono::duration<double> delta = end - start;
+  double cute_time = delta.count();
   //double cute_time = timer.seconds() / timing_iterations;
   /*
   DPCT1010:17: SYCL uses exceptions to report errors and does not use the error
@@ -471,7 +484,7 @@ void test_gemm(int m, int n, int k)
   */
   "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
       ;
-  //printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
+  printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
   printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
