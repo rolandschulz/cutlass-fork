@@ -358,56 +358,29 @@ void test_gemm(int m, int n, int k)
                      d_B.data(), n,
                      &beta,
                      d_C.data(), m);
-  /*
-  DPCT1010:5: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:6: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:3: The statement could not be removed.
-  */
-  /*
-  DPCT1000:4: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
 
   std::vector<TC> cublas_result = d_C;
 
   // Timing iterations
-  //timer.start();
-  for (int i = 0; i < timing_iterations; ++i) {
-    blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
-                       m, n, k,
-                       &alpha,
-                       d_A.data(), m,
-                       d_B.data(), n,
-                       &beta,
-                       d_C.data(), m);
+  {
+    //timer.start();
+    auto start = test_clock::now();
+    for (int i = 0; i < timing_iterations; ++i) {
+      blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
+                        m, n, k,
+                        &alpha,
+                        d_A.data(), m,
+                        d_B.data(), n,
+                        &beta,
+                        d_C.data(), m);
+    }
+    auto end = test_clock::now();
+    std::chrono::duration<double> delta = end - start;
+    double cublas_time = delta.count() / timing_iterations;
+    //double cublas_time = timer.seconds() / timing_iterations;
+
+    printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
   }
-  //double cublas_time = timer.seconds() / timing_iterations;
-  /*
-  DPCT1010:9: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:10: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:7: The statement could not be removed.
-  */
-  /*
-  DPCT1000:8: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
-  // printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
 
 #else
 
@@ -436,23 +409,25 @@ void test_gemm(int m, int n, int k)
   std::vector<TC> cute_result = d_C;
 
   // Timing iterations
-  //timer.start();
-  auto start = test_clock::now();
-  for (int i = 0; i < timing_iterations; ++i) {
-    gemm(m, n, k,
-         alpha,
-         d_A.data(), m,
-         d_B.data(), n,
-         beta,
-         d_C.data(), m);
-  }
-  dpct::get_in_order_queue().wait();
-  auto end = test_clock::now();
-  std::chrono::duration<double> delta = end - start;
-  double cute_time = delta.count() / timing_iterations;
-  //double cute_time = timer.seconds() / timing_iterations;
+  {
+    //timer.start();
+    auto start = test_clock::now();
+    for (int i = 0; i < timing_iterations; ++i) {
+      gemm(m, n, k,
+          alpha,
+          d_A.data(), m,
+          d_B.data(), n,
+          beta,
+          d_C.data(), m);
+    }
+    dpct::get_in_order_queue().wait();
+    auto end = test_clock::now();
+    std::chrono::duration<double> delta = end - start;
+    double cute_time = delta.count() / timing_iterations;
+    //double cute_time = timer.seconds() / timing_iterations;
 
-  printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
+    printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
+  }
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
   //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
