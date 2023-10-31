@@ -339,7 +339,7 @@ void test_gemm(int m, int n, int k)
 
   double gflops = (2.0*m*n*k) * 1e-9;
 
-  const int timing_iterations = 2;
+  const int timing_iterations = 16;
   //GPU_Clock timer;
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
@@ -432,23 +432,7 @@ void test_gemm(int m, int n, int k)
        d_B.data(), n,
        beta,
        d_C.data(), m);
-  /*
-  DPCT1010:13: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:14: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:11: The statement could not be removed.
-  */
-  /*
-  DPCT1000:12: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
+
   std::vector<TC> cute_result = d_C;
 
   // Timing iterations
@@ -465,25 +449,9 @@ void test_gemm(int m, int n, int k)
   dpct::get_in_order_queue().wait();
   auto end = test_clock::now();
   std::chrono::duration<double> delta = end - start;
-  double cute_time = delta.count();
+  double cute_time = delta.count() / timing_iterations;
   //double cute_time = timer.seconds() / timing_iterations;
-  /*
-  DPCT1010:17: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:18: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:15: The statement could not be removed.
-  */
-  /*
-  DPCT1000:16: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
+
   printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
