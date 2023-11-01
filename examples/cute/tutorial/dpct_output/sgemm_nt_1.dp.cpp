@@ -267,7 +267,7 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
 
   // Define block sizes (static)
   auto bM = Int<128>{};
-  auto bN = Int<128>{};
+  auto bN = Int< 64>{};
   auto bK = Int<  8>{};
 
   // Define the block layouts (static)
@@ -346,40 +346,43 @@ void test_gemm(int m, int n, int k)
   //
   // cuBLas
   //
-  dpct::queue_ptr handle = &dpct::get_in_order_queue();
   //cublasCreate(&handle);
+  std::vector<TC> cublas_result;
+  dpct::queue_ptr handle = &dpct::get_in_order_queue();
+  auto do_library = handle->get_device().get_info<sycl::info::device::vendor_id>() == 0x8086;
+  if (do_library) {
+    // Run once
+    d_C = h_C;
+    blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
+                      m, n, k,
+                      &alpha,
+                      d_A.data(), m,
+                      d_B.data(), n,
+                      &beta,
+                      d_C.data(), m);
 
-  // Run once
-  d_C = h_C;
-  blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
-                     m, n, k,
-                     &alpha,
-                     d_A.data(), m,
-                     d_B.data(), n,
-                     &beta,
-                     d_C.data(), m);
+    cublas_result = d_C;
 
-  std::vector<TC> cublas_result = d_C;
+    // Timing iterations
+    {
+      //timer.start();
+      auto start = test_clock::now();
+      for (int i = 0; i < timing_iterations; ++i) {
+        blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
+                          m, n, k,
+                          &alpha,
+                          d_A.data(), m,
+                          d_B.data(), n,
+                          &beta,
+                          d_C.data(), m);
+      }
+      auto end = test_clock::now();
+      std::chrono::duration<double> delta = end - start;
+      double cublas_time = delta.count() / timing_iterations;
+      //double cublas_time = timer.seconds() / timing_iterations;
 
-  // Timing iterations
-  {
-    //timer.start();
-    auto start = test_clock::now();
-    for (int i = 0; i < timing_iterations; ++i) {
-      blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
-                        m, n, k,
-                        &alpha,
-                        d_A.data(), m,
-                        d_B.data(), n,
-                        &beta,
-                        d_C.data(), m);
+      printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
     }
-    auto end = test_clock::now();
-    std::chrono::duration<double> delta = end - start;
-    double cublas_time = delta.count() / timing_iterations;
-    //double cublas_time = timer.seconds() / timing_iterations;
-
-    printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
   }
 
 #else
@@ -430,22 +433,23 @@ void test_gemm(int m, int n, int k)
   }
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
-  //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
+  if (do_library) {
+    //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
 
-  auto host_matrix_to_const_column_major_cute_tensor =
-    [](const auto& X, int num_rows, int num_cols, int LDX) {
-      const auto shape = cute::Shape<int, int>{num_rows, num_cols};
-      const auto strides = cute::Stride<int, int>{1, LDX};
-      return cute::make_tensor(X.data(), cute::make_layout(shape, strides));
-    };
+    auto host_matrix_to_const_column_major_cute_tensor =
+      [](const auto& X, int num_rows, int num_cols, int LDX) {
+        const auto shape = cute::Shape<int, int>{num_rows, num_cols};
+        const auto strides = cute::Stride<int, int>{1, LDX};
+        return cute::make_tensor(X.data(), cute::make_layout(shape, strides));
+      };
 
-  const auto A_view = host_matrix_to_const_column_major_cute_tensor(h_A, m, k, m);
-  // B^T is k x n, so B is n x k.
-  const auto B_view = host_matrix_to_const_column_major_cute_tensor(h_B, n, k, n);
-  const auto C_computed_view = host_matrix_to_const_column_major_cute_tensor(cute_result, m, n, m);
-  const auto C_expected_view = host_matrix_to_const_column_major_cute_tensor(cublas_result, m, n, m);
-  print_matrix_multiply_mollified_relative_error("float", A_view, B_view, C_computed_view, C_expected_view);
-
+    const auto A_view = host_matrix_to_const_column_major_cute_tensor(h_A, m, k, m);
+    // B^T is k x n, so B is n x k.
+    const auto B_view = host_matrix_to_const_column_major_cute_tensor(h_B, n, k, n);
+    const auto C_computed_view = host_matrix_to_const_column_major_cute_tensor(cute_result, m, n, m);
+    const auto C_expected_view = host_matrix_to_const_column_major_cute_tensor(cublas_result, m, n, m);
+    print_matrix_multiply_mollified_relative_error("float", A_view, B_view, C_computed_view, C_expected_view);
+  }
 #endif // CUTLASS_ENABLE_CUBLAS
 }
 
