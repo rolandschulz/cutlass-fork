@@ -36,6 +36,9 @@
 
 #include <cute/tensor.hpp>
 
+#include <chrono>
+using test_clock = std::chrono::high_resolution_clock;
+
 #include "cutlass/util/print_error.hpp"
 // #include "cutlass/util/GPU_Clock.hpp"
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
@@ -264,7 +267,7 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
 
   // Define block sizes (static)
   auto bM = Int<128>{};
-  auto bN = Int<128>{};
+  auto bN = Int< 64>{};
   auto bK = Int<  8>{};
 
   // Define the block layouts (static)
@@ -303,6 +306,11 @@ void gemm(int m, int n, int k, Alpha alpha, TA const *A, int ldA, TB const *B,
 void test_gemm(int m, int n, int k)
 {
   dpct::device_ext &dev_ct1 = dpct::get_current_device();
+  dpct::device_info deviceProp;
+  dpct::dev_mgr::instance().get_device(0).get_device_info(
+      deviceProp);
+  std::cout << "Running on device: "
+            << deviceProp.get_name() << "\n";
   //cute::device_init(0);
 
   std::cout << "M = " << m << std::endl;
@@ -331,75 +339,51 @@ void test_gemm(int m, int n, int k)
 
   double gflops = (2.0*m*n*k) * 1e-9;
 
-  const int timing_iterations = 100;
+  const int timing_iterations = 16;
   //GPU_Clock timer;
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
   //
   // cuBLas
   //
-  dpct::queue_ptr handle = &dpct::get_in_order_queue();
   //cublasCreate(&handle);
-
-  // Run once
-  d_C = h_C;
-  blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
-                     m, n, k,
-                     &alpha,
-                     d_A.data(), m,
-                     d_B.data(), n,
-                     &beta,
-                     d_C.data(), m);
-  /*
-  DPCT1010:5: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:6: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:3: The statement could not be removed.
-  */
-  /*
-  DPCT1000:4: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
-
-  std::vector<TC> cublas_result = d_C;
-
-  // Timing iterations
-  //timer.start();
-  for (int i = 0; i < timing_iterations; ++i) {
+  std::vector<TC> cublas_result;
+  dpct::queue_ptr handle = &dpct::get_in_order_queue();
+  auto do_library = handle->get_device().get_info<sycl::info::device::vendor_id>() == 0x8086;
+  if (do_library) {
+    // Run once
+    d_C = h_C;
     blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
-                       m, n, k,
-                       &alpha,
-                       d_A.data(), m,
-                       d_B.data(), n,
-                       &beta,
-                       d_C.data(), m);
+                      m, n, k,
+                      &alpha,
+                      d_A.data(), m,
+                      d_B.data(), n,
+                      &beta,
+                      d_C.data(), m);
+
+    cublas_result = d_C;
+
+    // Timing iterations
+    {
+      //timer.start();
+      auto start = test_clock::now();
+      for (int i = 0; i < timing_iterations; ++i) {
+        blam::cublas::gemm(handle, oneapi::mkl::transpose::N, oneapi::mkl::transpose::T,
+                          m, n, k,
+                          &alpha,
+                          d_A.data(), m,
+                          d_B.data(), n,
+                          &beta,
+                          d_C.data(), m);
+      }
+      auto end = test_clock::now();
+      std::chrono::duration<double> delta = end - start;
+      double cublas_time = delta.count() / timing_iterations;
+      //double cublas_time = timer.seconds() / timing_iterations;
+
+      printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
+    }
   }
-  //double cublas_time = timer.seconds() / timing_iterations;
-  /*
-  DPCT1010:9: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:10: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:7: The statement could not be removed.
-  */
-  /*
-  DPCT1000:8: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
-  // printf("CUBLAS_GEMM:   [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cublas_time, cublas_time*1000);
 
 #else
 
@@ -424,72 +408,48 @@ void test_gemm(int m, int n, int k)
        d_B.data(), n,
        beta,
        d_C.data(), m);
-  /*
-  DPCT1010:13: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:14: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:11: The statement could not be removed.
-  */
-  /*
-  DPCT1000:12: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
+
   std::vector<TC> cute_result = d_C;
 
   // Timing iterations
-  //timer.start();
-  for (int i = 0; i < timing_iterations; ++i) {
-    gemm(m, n, k,
-         alpha,
-         d_A.data(), m,
-         d_B.data(), n,
-         beta,
-         d_C.data(), m);
+  {
+    //timer.start();
+    auto start = test_clock::now();
+    for (int i = 0; i < timing_iterations; ++i) {
+      gemm(m, n, k,
+          alpha,
+          d_A.data(), m,
+          d_B.data(), n,
+          beta,
+          d_C.data(), m);
+    }
+    dpct::get_in_order_queue().wait();
+    auto end = test_clock::now();
+    std::chrono::duration<double> delta = end - start;
+    double cute_time = delta.count() / timing_iterations;
+    //double cute_time = timer.seconds() / timing_iterations;
+
+    printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
   }
-  //double cute_time = timer.seconds() / timing_iterations;
-  /*
-  DPCT1010:17: SYCL uses exceptions to report errors and does not use the error
-  codes. The call was replaced with 0. You need to rewrite this code.
-  */
-  /*
-  DPCT1009:18: SYCL uses exceptions to report errors and does not use the error
-  codes. The original code was commented out and a warning string was inserted.
-  You need to rewrite this code.
-  */
-  /*
-  DPCT1001:15: The statement could not be removed.
-  */
-  /*
-  DPCT1000:16: Error handling if-stmt was detected but could not be rewritten.
-  */
-  "cudaGetErrorString is not supported" /*cudaGetErrorString(CUTE_CHECK_LAST())*/
-      ;
-  //printf("CUTE_GEMM:     [%6.1f]GFlop/s  (%6.4f)ms\n", gflops / cute_time, cute_time*1000);
 
 #if defined(CUTLASS_ENABLE_CUBLAS) && CUTLASS_ENABLE_CUBLAS != 0
-  //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
+  if (do_library) {
+    //printf("Empirical Perf: %.1f%%\n", (cublas_time / cute_time) * 100);
 
-  auto host_matrix_to_const_column_major_cute_tensor =
-    [](const auto& X, int num_rows, int num_cols, int LDX) {
-      const auto shape = cute::Shape<int, int>{num_rows, num_cols};
-      const auto strides = cute::Stride<int, int>{1, LDX};
-      return cute::make_tensor(X.data(), cute::make_layout(shape, strides));
-    };
+    auto host_matrix_to_const_column_major_cute_tensor =
+      [](const auto& X, int num_rows, int num_cols, int LDX) {
+        const auto shape = cute::Shape<int, int>{num_rows, num_cols};
+        const auto strides = cute::Stride<int, int>{1, LDX};
+        return cute::make_tensor(X.data(), cute::make_layout(shape, strides));
+      };
 
-  const auto A_view = host_matrix_to_const_column_major_cute_tensor(h_A, m, k, m);
-  // B^T is k x n, so B is n x k.
-  const auto B_view = host_matrix_to_const_column_major_cute_tensor(h_B, n, k, n);
-  const auto C_computed_view = host_matrix_to_const_column_major_cute_tensor(cute_result, m, n, m);
-  const auto C_expected_view = host_matrix_to_const_column_major_cute_tensor(cublas_result, m, n, m);
-  print_matrix_multiply_mollified_relative_error("float", A_view, B_view, C_computed_view, C_expected_view);
-
+    const auto A_view = host_matrix_to_const_column_major_cute_tensor(h_A, m, k, m);
+    // B^T is k x n, so B is n x k.
+    const auto B_view = host_matrix_to_const_column_major_cute_tensor(h_B, n, k, n);
+    const auto C_computed_view = host_matrix_to_const_column_major_cute_tensor(cute_result, m, n, m);
+    const auto C_expected_view = host_matrix_to_const_column_major_cute_tensor(cublas_result, m, n, m);
+    print_matrix_multiply_mollified_relative_error("float", A_view, B_view, C_computed_view, C_expected_view);
+  }
 #endif // CUTLASS_ENABLE_CUBLAS
 }
 
