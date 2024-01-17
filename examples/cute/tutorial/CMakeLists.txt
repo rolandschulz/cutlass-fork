@@ -27,14 +27,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-cutlass_example_add_executable(
-  sgemm_nt_1
-  sgemm_nt_1.cu
-)
+if (CUTLASS_ENABLE_SYCL)
+  cutlass_example_add_executable(
+    sgemm_nt_1_sycl
+    sgemm_nt_1_sycl.cpp
+  )
+else ()
+  cutlass_example_add_executable(
+          sgemm_nt_1
+          sgemm_nt_1.cu
+  )
+endif ()
 
 cutlass_example_add_executable(
   tiled_copy
   tiled_copy.cu
 )
-
