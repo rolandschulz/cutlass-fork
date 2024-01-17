@@ -38,3 +38,8 @@ else ()
           sgemm_nt_1.cu
   )
 endif ()
+
+cutlass_example_add_executable(
+  tiled_copy
+  tiled_copy.cu
+)
