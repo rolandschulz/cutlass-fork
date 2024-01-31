@@ -30,6 +30,8 @@
  **************************************************************************************************/
 #pragma once
 
+#include <iomanip>
+
 #include <cute/config.hpp>
 
 #include <cute/util/type_traits.hpp>

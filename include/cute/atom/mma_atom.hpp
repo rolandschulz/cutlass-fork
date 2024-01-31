@@ -1062,4 +1062,5 @@ print_latex_mma(Shape_MNK const& shape_mnk,
 #include <cute/atom/mma_traits_sm80.hpp>
 #include <cute/atom/mma_traits_sm90.hpp>
 #include <cute/atom/mma_traits_sm90_gmma.hpp>
+#include <cute/atom/mma_traits_xe.hpp>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
