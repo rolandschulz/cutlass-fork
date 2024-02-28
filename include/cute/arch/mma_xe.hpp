@@ -3,30 +3,17 @@
 
 #include <cute/config.hpp>
 #include <cute/arch/mma.hpp>
-
-//fwd declare OCL function and OCL types - should go somewhere else
-#include <sycl.hpp> //for sycl::vec
+#include <cute/util/sycl_vec.hpp>
 
 #ifdef __SYCL_DEVICE_ONLY__ 
 #define SYCL_DEVICE_OCL(x) SYCL_EXTERNAL x
-template<class T, int N> using vector_t = typename sycl::vec<T,N>::vector_t;
 #else 
 #define SYCL_DEVICE_OCL(x) inline x { assert(false); }
-template<class T, int N> using vector_t = sycl::vec<T,N>;
 #endif
-
-using float8 = vector_t<float, 8>;
-using short8 = vector_t<short, 8>;
-using ushort8 = vector_t<ushort, 8>;
-// using int2 = vector_t<int, 2>; //conflicts with vector_types
-using int8 = vector_t<int, 8>;
-using uint8 = vector_t<uint, 8>;
 
 SYCL_DEVICE_OCL(float8 intel_sub_group_bf16_bf16_matrix_mad_k16(short8 a, int8 b, float8 acc));
 SYCL_DEVICE_OCL(float  intel_sub_group_bf16_bf16_matrix_mad_k16(short  a, int8 b, float  acc));
 #undef SYCL_DEVICE_OCL
-
-
 
 namespace cute {
 //MxNxK_A,B,C,D
