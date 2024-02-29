@@ -34,8 +34,8 @@ namespace cute
                     Tensor<TD, DLayout> &dst)
         {
             int H = size<0>(traits.tensor);
-            int W = size<1>(traits.tensor) * sizeof(decltype(traits.tensor)::engine_type::value_type);
-            XE_2D_LOAD::copy(traits.tensor.data(), W, H, W, src.data().coord_, dst.data());
+            int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
+            XE_2D_LOAD::copy(traits.tensor.data().get(), W, H, W, src.data().coord_, dst.data().get());
         }
     };
 

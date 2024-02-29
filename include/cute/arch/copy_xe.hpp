@@ -18,12 +18,12 @@ SYCL_DEVICE_BUILTIN(uint8 __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(long
 
 struct XE_2D_LOAD //m8k16
 {
-    CUTE_HOST_DEVICE static void copy(long baseoffset, int width, int height, int pitch, int2_ coord, ushort8* dst)
+    CUTE_HOST_DEVICE static void copy(ushort* baseoffset, int width, int height, int pitch, int2_ coord, ushort8* dst)
     {
-        *dst = __builtin_IB_subgroup_block_read_flat_u16_m8k16v1(baseoffset, width - 1, height - 1, pitch - 1, coord);
+        *dst = __builtin_IB_subgroup_block_read_flat_u16_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
     }
-    CUTE_HOST_DEVICE static void copy(long baseoffset, int width, int height, int pitch, int2_ coord, uint8* dst)
+    CUTE_HOST_DEVICE static void copy(uint* baseoffset, int width, int height, int pitch, int2_ coord, uint8* dst)
     {
-        *dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(baseoffset, width - 1, height - 1, pitch - 1, coord);
+        *dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
     }
 };
