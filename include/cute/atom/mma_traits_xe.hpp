@@ -15,8 +15,8 @@ template <>
 struct MMA_Traits<XE_8x16x16_BF16BF16F32F32_NN>
 {
   using ElementDVal = float;
-  using ElementAVal = bfloat16;
-  using ElementBVal = bfloat16;
+  using ElementAVal = sycl::ext::oneapi::bfloat16;
+  using ElementBVal = sycl::ext::oneapi::bfloat16;
   using ElementCVal = float;
 
   using Shape_MNK = Shape<_8,_16,_16>;
