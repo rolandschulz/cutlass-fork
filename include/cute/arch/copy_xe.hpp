@@ -27,3 +27,11 @@ struct XE_2D_LOAD //m8k16
         *dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
     }
 };
+
+struct XE_2D_SAVE //m8k16
+{
+    CUTE_HOST_DEVICE static void copy(uint* baseoffset, int width, int height, int pitch, int2_ coord, uint8* src)
+    {
+        __builtin_IB_subgroup_block_write_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord, *src);
+    }
+};
