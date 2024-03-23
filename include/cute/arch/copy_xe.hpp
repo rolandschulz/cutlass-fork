@@ -18,20 +18,28 @@ SYCL_DEVICE_BUILTIN(uint8 __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(long
 
 struct XE_2D_LOAD //m8k16
 {
-    CUTE_HOST_DEVICE static void copy(ushort* baseoffset, int width, int height, int pitch, int2_ coord, ushort8* dst)
+    template<class T>
+    CUTE_HOST_DEVICE static void copy(const void* baseoffset, int width, int height, int pitch, int2_ coord, T* dst)
     {
-        *dst = __builtin_IB_subgroup_block_read_flat_u16_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
-    }
-    CUTE_HOST_DEVICE static void copy(uint* baseoffset, int width, int height, int pitch, int2_ coord, uint8* dst)
-    {
-        *dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
+        if constexpr(sizeof(T)==sizeof(ushort8)) {
+            *(ushort8*)dst = __builtin_IB_subgroup_block_read_flat_u16_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);    
+        } else if constexpr(sizeof(T)==sizeof(uint8)) {
+            *(uint8*)dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
+        } else {
+            static_assert(false);
+        }
     }
 };
 
 struct XE_2D_SAVE //m8k16
 {
-    CUTE_HOST_DEVICE static void copy(uint* baseoffset, int width, int height, int pitch, int2_ coord, uint8* src)
+    template<class T>
+    CUTE_HOST_DEVICE static void copy(void* baseoffset, int width, int height, int pitch, int2_ coord, const T* src)
     {
-        __builtin_IB_subgroup_block_write_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord, *src);
+        if constexpr(sizeof(T)==sizeof(uint8)) {
+            __builtin_IB_subgroup_block_write_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord, *(uint8*)src);
+        } else {
+            static_assert(false);
+        }
     }
 };

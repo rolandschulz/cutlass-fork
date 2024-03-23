@@ -36,7 +36,7 @@
 namespace cute
 {
 
-template <class T, size_t N, size_t Alignment = 16>
+template <class T, size_t N, size_t Alignment = max(16, alignof(T))>
 struct CUTE_ALIGNAS(Alignment) array_aligned : cute::array<T,N> {};
 
 } // end namespace cute

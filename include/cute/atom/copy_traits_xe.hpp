@@ -31,9 +31,10 @@ namespace cute
         {
             static_assert(is_rmem<TD>::value);
             int H = size<0>(traits.tensor);
-            int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
-            auto [x, y] = src.data().coord_;
-            XE_2D_LOAD::copy(traits.tensor.data().get(), W, H, W, int2_{x, y}, dst.data().get());
+            // int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
+            int W = size<1>(traits.tensor) * sizeof(typename TD::value_type)/8; //TODO: inconsistent to give the size in elements but use vector for copy
+            auto [y, x] = src.data().coord_;
+            XE_2D_LOAD::copy(traits.tensor.data().get(), W, H, W, int2_{x, y}, &*dst.data());
         }
 
         template <class TS, class SLayout,
@@ -46,8 +47,8 @@ namespace cute
             static_assert(is_rmem<TS>::value);
             int H = size<0>(traits.tensor);
             int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
-            auto [x, y] = dst.data().coord_;
-            XE_2D_SAVE::copy(traits.tensor.data().get(), W, H, W, int2_{x, y}, src.data().get());
+            auto [y, x] = dst.data().coord_;
+            XE_2D_SAVE::copy(traits.tensor.data().get(), W, H, W, int2_{x, y}, &*src.data());
         }
     };
 
