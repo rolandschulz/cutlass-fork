@@ -32,7 +32,7 @@ namespace cute
             static_assert(is_rmem<TD>::value);
             int H = size<0>(traits.tensor);
             // int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
-            int W = size<1>(traits.tensor) * sizeof(typename TD::value_type)/8; //TODO: inconsistent to give the size in elements but use vector for copy
+            int W = size<1>(traits.tensor) * sizeof(typename TD::value_type); //TODO: inconsistent to give the size in elements but use vector for copy
             auto [y, x] = src.data().coord_;
             XE_2D_LOAD::copy(traits.tensor.data().get(), W, H, W, int2_{x, y}, &*dst.data());
         }
