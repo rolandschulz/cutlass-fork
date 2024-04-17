@@ -17,8 +17,7 @@
 #include <cute/numeric/arithmetic_tuple.hpp>
 
 using test_clock = std::chrono::high_resolution_clock;
-
-using sycl::ext::oneapi::bfloat16;
+using namespace cute;
 
 bool identityData = false;
 bool fixedData = false;
@@ -48,7 +47,7 @@ static void fill_matrix(std::vector<T> &M, size_t numRows, size_t numCols)
     if (identityData)
     {
         std::generate(std::begin(M), std::end(M), [&]
-                      { return 1.0f; });
+                      { return 1.0_bf16; });
     }
     else if (fixedData)
     {
@@ -56,7 +55,7 @@ static void fill_matrix(std::vector<T> &M, size_t numRows, size_t numCols)
         {
             for (size_t c = 0; c < numCols; c++)
             {
-                M[r * numCols + c] = static_cast<float>(r + c);
+                M[r * numCols + c] = bfloat16_t(float(r + c));
             }
         }
     }
@@ -66,7 +65,7 @@ static void fill_matrix(std::vector<T> &M, size_t numRows, size_t numCols)
         std::mt19937 rng(dev());
         std::uniform_real_distribution<float> dist(-1.0, 1.0);
         std::generate(std::begin(M), std::end(M), [&]
-                      { return dist(rng); });
+                      { return bfloat16_t(dist(rng)); });
     }
 }
 
@@ -153,7 +152,7 @@ inline size_t time_event(sycl::event &e)
 template <int tM, int tN, int tK, int MM, int NN>
 static void go_dpas_blockread_vnni_tiled(
     sycl::queue queue,
-    std::vector<float> &c_vec, sycl::buffer<bfloat16> a, sycl::buffer<bfloat16> b,
+    std::vector<float> &c_vec, sycl::buffer<bfloat16_t> a, sycl::buffer<bfloat16_t> b,
     size_t M, size_t N, size_t K,
     const std::vector<float> &C_ref)
 {
@@ -192,9 +191,6 @@ static void go_dpas_blockread_vnni_tiled(
     auto A = accA.get_multi_ptr<sycl::access::decorated::yes>().get();
     auto B = accB.get_multi_ptr<sycl::access::decorated::yes>().get();
     auto C = accC.get_multi_ptr<sycl::access::decorated::yes>().get();
-
-
-    using namespace cute;
 
     Tensor tAr = make_tensor<ushort>(Shape<_8, Int<MM>>{});
     Tensor tBr = make_tensor<uint>(Shape<_8, Int<NN>>{});
@@ -256,9 +252,9 @@ int main(int argc, char **argv)
     const auto N = matrixSize;
     const auto K = matrixSize;
 
-    std::vector<bfloat16> A_vec(M * K);
-    std::vector<bfloat16> B_vec(K * N);
-    std::vector<bfloat16> Bvnni_vec(K * N);
+    std::vector<bfloat16_t> A_vec(M * K);
+    std::vector<bfloat16_t> B_vec(K * N);
+    std::vector<bfloat16_t> Bvnni_vec(K * N);
     std::vector<float> C_vec(M * N);
     std::vector<float> C_ref(M * N);
 
