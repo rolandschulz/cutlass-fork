@@ -34,7 +34,7 @@
 #  define CUTE_HOST_DEVICE __forceinline__ __host__ __device__
 #  define CUTE_DEVICE      __forceinline__          __device__
 #  define CUTE_HOST        __forceinline__ __host__
-#elif defined(__SYCL_CUDA_ARCH__)
+#elif defined(__SYCL_DEVICE_ONLY__)
 #  define CUTE_HOST_DEVICE __attribute__((always_inline))
 #  define CUTE_DEVICE      __attribute__((always_inline))
 #  define CUTE_HOST        inline
@@ -140,10 +140,16 @@
 // IO
 //
 
-#if !defined(__CUDACC_RTC__)
-#  include <cstdio>
-#  include <iostream>
-#  include <iomanip>
+#if defined(CUTLASS_ENABLE_SYCL)
+#include <sycl/sycl.hpp>
+namespace cute
+{
+using sycl::ext::oneapi::experimental::printf;
+}
+#elif !defined(__CUDACC_RTC__)
+#include <cstdio>
+#include <iostream>
+#include <iomanip>
 #endif
 
 //
