@@ -1,4 +1,3 @@
-
 # Copyright (c) 2024 - 2024 Codeplay Software Ltd. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 #
