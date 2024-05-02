@@ -207,7 +207,10 @@ static void go_dpas_blockread_vnni_tiled(
     Tensor tCi = make_tensor(make_inttuple_iter(m, n), make_layout(Shape<_1, Int<MM>, Int<NN>>{}, make_stride(_1{}, tM*E<0>{}, tN*E<1>{})));
     TiledMMA<MMA_Atom<XE_8x16x16_BF16BF16F32F32_NN>, Layout<Shape<_1,_1,_1>>> tiled_mma; 
 
+    static_assert(detail::has_prefetch<XE_2D_LOAD>);
+    
     for (int k = 0; k < K; k += tK) {
+        prefetch(A_copy, tAi(_, _, k));
         copy(A_copy, tAi(_, _, k), tAr);
         copy(B_copy, tBi(_, k/2, _), tBr);
         gemm(tiled_mma, tAr, tBr, tCr);

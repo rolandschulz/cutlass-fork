@@ -38,7 +38,6 @@ namespace cute
         }
     };
 
-
     template <class GTensor>
     struct Copy_Traits<XE_2D_SAVE, GTensor>
     {

@@ -18,6 +18,7 @@ SYCL_DEVICE_BUILTIN(uint8 __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(long
 
 struct XE_2D_LOAD //m8k16
 {
+    using PREFETCH = XE_2D_LOAD;
     template<class T>
     CUTE_HOST_DEVICE static void copy(const void* baseoffset, int width, int height, int pitch, int2_ coord, T* dst)
     {
