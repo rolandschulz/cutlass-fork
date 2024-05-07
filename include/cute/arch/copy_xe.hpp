@@ -18,7 +18,7 @@ SYCL_DEVICE_BUILTIN(uint8 __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(long
 
 struct XE_2D_LOAD //m8k16
 {
-    using PREFETCH = XE_2D_LOAD;
+    using PREFETCH = struct XE_2D_PREFETCH;
     template<class T>
     CUTE_HOST_DEVICE static void copy(const void* baseoffset, int width, int height, int pitch, int2_ coord, T* dst)
     {
@@ -26,6 +26,21 @@ struct XE_2D_LOAD //m8k16
             *(ushort8*)dst = __builtin_IB_subgroup_block_read_flat_u16_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);    
         } else if constexpr(sizeof(T)==sizeof(uint)) {
             *(uint8*)dst = __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
+        } else {
+            static_assert(false);
+        }
+    }
+};
+
+struct XE_2D_PREFETCH //m8k16
+{
+    template<class T>
+    CUTE_HOST_DEVICE static void copy(const void* baseoffset, int width, int height, int pitch, int2_ coord)
+    {
+        if constexpr(sizeof(T)==sizeof(ushort)) {
+            __builtin_IB_subgroup_block_read_flat_u16_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);    
+        } else if constexpr(sizeof(T)==sizeof(uint)) {
+            __builtin_IB_subgroup_block_read_flat_u32_m8k16v1((long)baseoffset, width - 1, height - 1, pitch - 1, coord);
         } else {
             static_assert(false);
         }

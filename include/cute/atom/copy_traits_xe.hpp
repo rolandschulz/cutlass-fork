@@ -39,6 +39,38 @@ namespace cute
     };
 
     template <class GTensor>
+    struct Copy_Traits<XE_2D_PREFETCH, GTensor>
+    {
+        // using ThrID   = Layout<_16>; //TODO: I think it should be 16 (copy is per subgroup) - but static_assert fails
+        using ThrID = Layout<_1>;
+        using NumBits = Int<sizeof(typename GTensor::engine_type::value_type) * 8>; // hacky: does vec of 8
+        // Map from (src-thr,src-val) to bit
+        using SrcLayout = Layout<Shape<_1, NumBits>>; // TODO:  is _1 correct?
+        // Map from (dst-thr,dst-val) to bit
+        using DstLayout = Layout<Shape<_1, NumBits>>;
+        // Reference map from (thr,val) to bit
+        using RefLayout = SrcLayout;
+
+        GTensor tensor;
+
+        Copy_Traits(Copy_Traits<XE_2D_LOAD, GTensor> c) : tensor(c.tensor) {}
+
+        template <class TS, class SLayout,
+                  class TD, class DLayout>
+        CUTE_HOST_DEVICE friend constexpr void
+        copy_unpack(Copy_Traits const &traits,
+                    Tensor<ViewEngine<ArithmeticTupleIterator<TS>>, SLayout> const &src,
+                    Tensor<TD, DLayout> &dst)
+        {
+            int H = size<0>(traits.tensor);
+            // int W = size<1>(traits.tensor) * sizeof(typename decltype(traits.tensor)::engine_type::value_type);
+            int W = size<1>(traits.tensor) * sizeof(typename GTensor::value_type); //TODO: inconsistent to give the size in elements but use vector for copy
+            auto [y, x] = src.data().coord_;
+            XE_2D_PREFETCH::copy<typename GTensor::value_type>(traits.tensor.data().get(), W, H, W, int2_{x, y});
+        }
+    };
+
+    template <class GTensor>
     struct Copy_Traits<XE_2D_SAVE, GTensor>
     {
         // using ThrID   = Layout<_16>; //TODO: I think it should be 16 (copy is per subgroup) - but static_assert fails
