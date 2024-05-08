@@ -43,6 +43,11 @@ if (CUTLASS_ENABLE_SYCL)
     tiled_copy_sycl.cpp
   )
 
+  cutlass_example_add_executable(
+    pvc_sycl
+    pvc_sycl/pvc_sycl.cpp
+  )
+
   if (SYCL_NVIDIA_TARGET)
     cutlass_example_add_executable(
       sgemm_sm70

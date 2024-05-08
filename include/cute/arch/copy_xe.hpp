@@ -50,6 +50,9 @@ SYCL_DEVICE_BUILTIN(void __builtin_IB_subgroup_block_write_flat_u32_m8k16v1(
 SYCL_DEVICE_BUILTIN(intel::ushort8 __builtin_IB_subgroup_block_read_flat_u16_m8k16v1(
     long baseoffset, int width_minus_one, int height_minus_one,
     int pitch_minus_one, intel::coord_t coord));
+SYCL_DEVICE_BUILTIN(void __builtin_IB_subgroup_block_prefetch_u16_m8k16v1(
+    long baseoffset, int width_minus_one, int height_minus_one,
+    int pitch_minus_one, intel::coord_t coord));
 SYCL_DEVICE_BUILTIN(intel::uint8 __builtin_IB_subgroup_block_read_flat_u32_m8k16v1(
     long baseoffset, int width_minus_one, int height_minus_one,
     int pitch_minus_one, intel::coord_t coord));
@@ -86,6 +89,7 @@ SYCL_DEVICE_BUILTIN(intel::int8 intel_subgroup_block_read_transform_u16_k16(
 
 struct XE_2D_U16x8x16x1x1_LD_N
 {
+  using PREFETCH = struct XE_2D_U16x8x16x1x1_PF_N;
   template <class T>
   CUTE_HOST_DEVICE static void copy(const void *baseoffset, int width,
                                     int height, int pitch, intel::coord_t coord,
@@ -96,6 +100,22 @@ struct XE_2D_U16x8x16x1x1_LD_N
           (long)baseoffset, width - 1, height - 1, pitch - 1, coord);
     #else
       CUTE_INVALID_CONTROL_PATH("Trying to use block loads on non-PVC hardware");
+    #endif
+  }
+};
+
+struct XE_2D_U16x8x16x1x1_PF_N
+{
+  using PREFETCH = XE_2D_U16x8x16x1x1_PF_N;
+  template <class T>
+  CUTE_HOST_DEVICE static void copy(const void *baseoffset, int width,
+                                    int height, int pitch, intel::coord_t coord) {
+    #if defined(SYCL_INTEL_TARGET)
+      static_assert(sizeof(T) == 2, "Expected T to have size 2");
+      *(intel::ushort8 *)dst = __builtin_IB_subgroup_block_prefetch_u16_m8k16v1(
+          (long)baseoffset, width - 1, height - 1, pitch - 1, coord);
+    #else
+      CUTE_INVALID_CONTROL_PATH("Trying to use block prefetch on non-PVC hardware");
     #endif
   }
 };
