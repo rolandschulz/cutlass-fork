@@ -154,3 +154,7 @@ foreach(EXAMPLE
   add_subdirectory(${EXAMPLE})
 
 endforeach()
+
+if(${CUTLASS_ENABLE_SYCL})
+  add_subdirectory(sycl)
+endif()
