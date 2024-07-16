@@ -38,7 +38,9 @@
 #include "cutlass/cutlass.h"
 #include "cutlass/numeric_types.h"
 
+#if defined(CUTLASS_SYCL_ENABLED)
 #include <cuda_runtime.h>
+#endif
 
 #if defined(CUTLASS_ARCH_WMMA_ENABLED)
 #include <mma.h>
