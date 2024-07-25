@@ -38,7 +38,7 @@ find_library(DPCPP_LIB_DIR NAMES sycl sycl6 PATHS "${DPCPP_BIN_DIR}/../lib")
 
 add_library(DPCPP::DPCPP INTERFACE IMPORTED)
 
-set(DPCPP_FLAGS "-fsycl;-mllvm;-enable-global-offset=false;")
+set(DPCPP_FLAGS "-fsycl;")
 if(NOT "${DPCPP_SYCL_TARGET}" STREQUAL "")
   list(APPEND DPCPP_FLAGS "-fsycl-targets=${DPCPP_SYCL_TARGET};")
 endif()
@@ -51,9 +51,11 @@ if(NOT "${DPCPP_SYCL_ARCH}" STREQUAL "")
   endif()
 endif()
 
+set(DPCPP_COMPILE_FLAGS "${DPCPP_FLAGS};-mllvm;-enable-global-offset=false")
+
 if(UNIX)
   set_target_properties(DPCPP::DPCPP PROPERTIES
-    INTERFACE_COMPILE_OPTIONS "${DPCPP_FLAGS}"
+    INTERFACE_COMPILE_OPTIONS "${DPCPP_COMPILE_FLAGS}"
     INTERFACE_LINK_OPTIONS "${DPCPP_FLAGS}"
     INTERFACE_LINK_LIBRARIES ${DPCPP_LIB_DIR}
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl;${DPCPP_BIN_DIR}/../include")
@@ -61,7 +63,7 @@ if(UNIX)
   message(STATUS "Using DPCPP flags: ${DPCPP_FLAGS}")
 else()
   set_target_properties(DPCPP::DPCPP PROPERTIES
-    INTERFACE_COMPILE_OPTIONS "${DPCPP_FLAGS}"
+    INTERFACE_COMPILE_OPTIONS "${DPCPP_COMPILE_FLAGS}"
     INTERFACE_LINK_LIBRARIES ${DPCPP_LIB_DIR}
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl")
 endif()
@@ -88,8 +90,8 @@ function(add_sycl_to_target)
 endfunction()
 
 function(add_sycl_include_directories_to_target NAME)
-  target_include_directories(${NAME}
+  target_include_directories(${NAME} SYSTEM
     PUBLIC ${DPCPP_BIN_DIR}/../include/sycl
-    PUBLIC ${DPCPP_BIN_DIR}/../include>
+    PUBLIC ${DPCPP_BIN_DIR}/../include
   )
 endfunction()
