@@ -39,31 +39,35 @@ find_library(DPCPP_LIB_DIR NAMES sycl sycl6 PATHS "${DPCPP_BIN_DIR}/../lib")
 add_library(DPCPP::DPCPP INTERFACE IMPORTED)
 
 set(DPCPP_FLAGS "-fsycl;")
+set(DPCPP_COMPILE_ONLY_FLAGS "")
+
 if(NOT "${DPCPP_SYCL_TARGET}" STREQUAL "")
   list(APPEND DPCPP_FLAGS "-fsycl-targets=${DPCPP_SYCL_TARGET};")
 endif()
-list(APPEND DPCPP_FLAGS "${DPCPP_USER_FLAGS};")
+
+if(NOT "${DPCPP_USER_FLAGS}" STREQUAL "")
+  list(APPEND DPCPP_FLAGS "${DPCPP_USER_FLAGS};")
+endif()
 
 if(NOT "${DPCPP_SYCL_ARCH}" STREQUAL "")
   if("${DPCPP_SYCL_TARGET}" STREQUAL "nvptx64-nvidia-cuda")
     list(APPEND DPCPP_FLAGS "-Xsycl-target-backend")
     list(APPEND DPCPP_FLAGS "--cuda-gpu-arch=${DPCPP_SYCL_ARCH}")
+    list(APPEND DPCPP_COMPILE_ONLY_FLAGS; "-mllvm;-enable-global-offset=false;")
   endif()
 endif()
 
-set(DPCPP_COMPILE_FLAGS "${DPCPP_FLAGS};-mllvm;-enable-global-offset=false")
-
 if(UNIX)
   set_target_properties(DPCPP::DPCPP PROPERTIES
-    INTERFACE_COMPILE_OPTIONS "${DPCPP_COMPILE_FLAGS}"
+    INTERFACE_COMPILE_OPTIONS "${DPCPP_FLAGS};${DPCPP_COMPILE_ONLY_FLAGS}"
     INTERFACE_LINK_OPTIONS "${DPCPP_FLAGS}"
     INTERFACE_LINK_LIBRARIES ${DPCPP_LIB_DIR}
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl;${DPCPP_BIN_DIR}/../include")
   message(STATUS "DPCPP INCLUDE DIR: ${DPCPP_BIN_DIR}/../include/sycl;${DPCPP_BIN_DIR}/../include")
-  message(STATUS "Using DPCPP flags: ${DPCPP_FLAGS}")
+  message(STATUS "Using DPCPP flags: ${DPCPP_FLAGS};${DPCPP_COMPILE_ONLY_FLAGS}")
 else()
   set_target_properties(DPCPP::DPCPP PROPERTIES
-    INTERFACE_COMPILE_OPTIONS "${DPCPP_COMPILE_FLAGS}"
+    INTERFACE_COMPILE_OPTIONS "${DPCPP_FLAGS};${DPCPP_COMPILE_ONLY_FLAGS}"
     INTERFACE_LINK_LIBRARIES ${DPCPP_LIB_DIR}
     INTERFACE_INCLUDE_DIRECTORIES "${DPCPP_BIN_DIR}/../include/sycl")
 endif()
