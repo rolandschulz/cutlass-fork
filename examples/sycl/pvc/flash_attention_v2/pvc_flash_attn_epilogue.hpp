@@ -236,7 +236,7 @@ public:
         
         ElementLSE curr_sum = sum(x, y);
         ElementO scale = (curr_sum == 0.f || curr_sum != curr_sum) ? 1.f : sycl::native::recip(curr_sum);
-        tLSEr(x, y) = curr_sum == 0.f ? -INFINITY : max(x, y) * softmax_scale + logf(curr_sum);
+        tLSEr(x, y) = curr_sum == 0.f ? -INFINITY : max(x, y) * softmax_scale + sycl::native::log(curr_sum);
         
         CUTLASS_PRAGMA_UNROLL
         for (int z = 0; z < FragsN; z++) {

@@ -93,7 +93,7 @@ static constexpr auto append_pvc_tensor(Tensor_t const &t0, uint32_t shape, uint
 template <class CopyOp, class StrideIndicator = cute::Stride<int64_t, cute::Int<1>, int64_t>>
 struct XE_2D_LD_Unpack {
 
-  using BlockShape = CopyOp::BlockShape;
+  using BlockShape = typename CopyOp::BlockShape;
   using Value_Layout = typename detail::value_layout_t<CopyOp>::type;
   using Traits_LD_t = Copy_Traits<CopyOp, StrideIndicator>;
 
@@ -258,7 +258,7 @@ struct XE_2D_LD_Unpack {
 
 template <class CopyOp, class StrideIndicator = cute::Stride<int64_t, cute::Int<1>, int64_t>> struct XE_2D_ST_Unpack {
   using Traits_ST_t = Copy_Traits<CopyOp, StrideIndicator>;
-  using BlockShape = CopyOp::BlockShape;
+  using BlockShape = typename CopyOp::BlockShape;
   using Value_Layout = decltype(make_layout(make_shape(get<0>(BlockShape{}),
                                                        get<1>(BlockShape{})
                                                           / Int<detail::subgroup_size>{})));

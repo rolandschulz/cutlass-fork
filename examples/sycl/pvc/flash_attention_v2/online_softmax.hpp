@@ -92,20 +92,51 @@ namespace flash
     CUTLASS_DEVICE static typename std::enable_if<!is_first>::type run(const Element scale, FragSum &sum, FragMax &max, FragMax_Prev &max_prev, FragOut &out)
     {
       CUTLASS_PRAGMA_UNROLL
-      for (int x = 0; x < SizeA; x++)
+      for (int x = 0; x < SizeA; x++) // V
       {
         CUTLASS_PRAGMA_UNROLL
-        for (int y = 0; y < SizeB; y++)
+        for (int y = 0; y < SizeB; y += 4) // M
         {
-          const Element curr_max_scaled = !CheckInf ? max(x, y) * scale : max(x, y) == -INFINITY ? 0.f
-                                                                                                 : (max(x, y) * scale);
+          Element curr_max_scaled = max(x, y) * scale;
+          Element curr_max_scale1 = max(x, y + 1) * scale;
+          Element curr_max_scaled2 = max(x, y + 2) * scale;
+          Element curr_max_scale3 = max(x, y + 3) * scale;
+          if (CheckInf && max(x, y) == -INFINITY)
+          {
+            curr_max_scaled = 0.f;
+          }
+          if (CheckInf && max(x, y + 1) == -INFINITY)
+          {
+            curr_max_scale1 = 0.f;
+          }
+          if (CheckInf && max(x, y + 2) == -INFINITY)
+          {
+            curr_max_scaled2 = 0.f;
+          }
+          if (CheckInf && max(x, y + 3) == -INFINITY)
+          {
+            curr_max_scale3 = 0.f;
+          }
+
           const Element eq = (max_prev(x, y) * scale - curr_max_scaled);
-          Element curr_scale = sycl::native::exp2(eq);
+          const Element eq1 = (max_prev(x, y + 1) * scale - curr_max_scale1);
+          const Element eq2 = (max_prev(x, y + 2) * scale - curr_max_scaled2);
+          const Element eq3 = (max_prev(x, y + 3) * scale - curr_max_scale3);
+          const Element curr_scale = sycl::native::exp2(eq);
+          const Element curr_scale1 = sycl::native::exp2(eq1);
+          const Element curr_scale2 = sycl::native::exp2(eq2);
+          const Element curr_scale3 = sycl::native::exp2(eq3);
           sum(x, y) *= curr_scale;
+          sum(x, y + 1) *= curr_scale1;
+          sum(x, y + 2) *= curr_scale2;
+          sum(x, y + 3) *= curr_scale3;
           CUTLASS_PRAGMA_UNROLL
-          for (int z = 0; z < SizeC; z++)
+          for (int z = 0; z < SizeC; z++) // N
           {
             out(x, y, z) *= curr_scale;
+            out(x, y + 1, z) *= curr_scale1;
+            out(x, y + 2, z) *= curr_scale2;
+            out(x, y + 3, z) *= curr_scale3;
           }
         }
       }
@@ -144,8 +175,12 @@ namespace flash
         CUTLASS_PRAGMA_UNROLL
         for (int y = 0; y < SizeB; y++)
         { // size B = 4
-          const Element max_scaled = !CheckInf ? max(x, y) * scale : max(x, y) == -INFINITY ? 0.f
-                                                                                            : (max(x, y) * scale);
+          Element max_scaled = max(x, y) * scale;
+          if (CheckInf && max(x, y) == -INFINITY)
+          {
+            max_scaled = 0.f;
+          }
+
           CUTLASS_PRAGMA_UNROLL
           for (int z = 0; z < SizeC; z += 2)
           { // size C = 2
@@ -257,8 +292,8 @@ namespace flash
       cute::Tensor max_prev = cute::make_fragment_like(max);
       cute::copy(max, max_prev);
       reduce_max<SizeA, SizeB, SizeC>(frag_s, max);
-      (is_first) ? FirstBlockSoftmax::template run<CheckInf, true, SizeA, SizeB, SizeC>(params.scale, sum, max, max_prev, out) 
-                  : FirstBlockSoftmax::template run<CheckInf, false, SizeA, SizeB, SizeC>(params.scale, sum, max, max_prev, out);
+      (is_first) ? FirstBlockSoftmax::template run<CheckInf, true, SizeA, SizeB, SizeC>(params.scale, sum, max, max_prev, out)
+                 : FirstBlockSoftmax::template run<CheckInf, false, SizeA, SizeB, SizeC>(params.scale, sum, max, max_prev, out);
       scale_exp_log2<CheckInf, SizeA, SizeB, SizeC>(frag_s, max, params.scale);
       reduce_sum<SizeA, SizeB, SizeC>(frag_s, sum);
     }
