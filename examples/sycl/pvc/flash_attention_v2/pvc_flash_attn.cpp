@@ -456,7 +456,7 @@ int main(int argc, const char** argv)
           Layout<Shape<_4, _2, _1>>,
           Tile<_32, _32, _32>>; // Subgroup level-tile
 
-  constexpr int PipelineStages = 3;
+  constexpr int PipelineStages = 2;
   using GEMMDispatchPolicy = cutlass::gemm::MainloopIntelPVC<PipelineStages>;
   using EpilogueDispatchPolicy = cutlass::epilogue::IntelPVCEpilogue;
 
@@ -470,7 +470,7 @@ int main(int argc, const char** argv)
           XE_2D_U32x8x16_ST_N>;
 
   if(options.is_causal) {
-    using GmemTiledCopyQ = XE_2D_U16x32x16_LD_N;
+    using GmemTiledCopyQ = XE_2D_U16x32x32_LD_N;
     using GmemTiledCopyK = XE_2D_U16x16x32_LD_V;
     using GmemTiledCopyV = XE_2D_U16x16x32_LD_V;
     // Mainloop

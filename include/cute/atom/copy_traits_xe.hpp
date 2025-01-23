@@ -172,17 +172,14 @@ struct XE_2D_LD_Unpack {
 
     dtype *base_addr = (dtype *)traits.base_ptr;
   
-    int x, y;
     auto [m, n, l] = src.data().coord_;
+    int x=n, y=m;
     if constexpr (is_need_reversed) {
       x = m;
       y = n;
-    } else {
-      x = n;
-      y = m;
-    }
+    } 
 
-    static constexpr auto inst_size = detail::size_of_inst<CopyOp, dtype>;
+    constexpr auto inst_size = detail::size_of_inst<CopyOp, dtype>;
 
     CopyOp::copy(base_addr + l * traits.stride_l,
                  traits.width * sizeof(dtype), traits.height,
