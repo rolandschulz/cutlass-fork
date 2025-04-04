@@ -208,7 +208,7 @@ struct CollectiveMma<
       // hardcode here for functionality test, will remove this branch in the future.
 
       auto out = make_fragment_like<DstType>(in);
-      auto tmp = recast<int>(out);
+      auto tmp = recast<std::array<DstType, 2>>(out);
 
 #if 0
       // TODO: hard code for test
@@ -219,9 +219,8 @@ struct CollectiveMma<
 
 #else
 
-      using format_type = ushort;
-      static constexpr auto src_bits = sizeof_bits_v<SrcType>;
-      static constexpr auto scalar = sizeof_bits_v<format_type> / src_bits;
+      static constexpr auto scalar = 4;
+      using format_type = std::array<SrcType, scalar>;
       auto src_ptr = reinterpret_cast<const format_type*>(raw_pointer_cast(&(in.data()[0])));
       auto dst_ptr = tmp.data();
 
@@ -229,10 +228,9 @@ struct CollectiveMma<
       for (int i = 0; i < (decltype(size(out))::value / scalar); i++) {
         #pragma unroll
         for (int j = 0; j < 2; j++) {
-          using namespace cutlass::platform;
-          dst_ptr[i * 2 + j] = (bit_cast<short>(static_cast<_Float16>((short)(static_cast<SrcType>(
-            (src_ptr[i] >> (src_bits * j * 2)) & 0xf))))) | (bit_cast<short>(static_cast<_Float16>((short)(static_cast<SrcType>(
-              (src_ptr[i] >> (src_bits * (j*2+1))) & 0xf)))) << 16);
+          // using namespace cutlass::platform;
+          dst_ptr[i*2+0][j] = static_cast<_Float16>(src_ptr[i][j*2+0]);
+          dst_ptr[i*2+1][j] = static_cast<_Float16>(src_ptr[i][j*2+1]);
           // if (thread0() && i == 1) {
           //   PRINT_S(i);
           //   PRINT_S(src_ptr[i]);
