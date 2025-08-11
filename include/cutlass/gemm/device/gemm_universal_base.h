@@ -52,7 +52,7 @@
 
 #include "cutlass/gemm/kernel/default_gemm_universal.h"
 #include "cutlass/gemm/device/default_gemm_configuration.h"
-
+#include "cutlass/util/sycl_launch.hpp"
 #include "cutlass/trace.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -463,7 +463,7 @@ public:
       const auto sycl_grid = syclcompat::dim3(grid.x, grid.y, grid.z);
 
       sycl::queue q = stream ? *stream : syclcompat::get_default_queue();
-      syclcompat::experimental::launch<Kernel2<GemmKernel>>(
+      cutlass::intel::launch<Kernel2<GemmKernel>>(
         syclcompat::experimental::launch_policy{
           sycl_grid, sycl_block,
 #if defined(SYCL_EXT_ONEAPI_WORK_GROUP_SCRATCH_MEMORY)
