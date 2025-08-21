@@ -33,9 +33,6 @@
 #include <cutlasscompat/dims.hpp>
 #include <cutlasscompat/launch_policy.hpp>
 
-#include <tuple>
-#include <utility>
-
 namespace cutlasscompat {
 
 namespace detail {
@@ -58,24 +55,6 @@ sycl::nd_range<3> transform_nd_range(const sycl::nd_range<Dim> &range) {
   return sycl::nd_range<3>{{1, 1, global_range[0]}, {1, 1, local_range[0]}};
 }
 
-template <typename FType, typename... Args>
-struct KernelFunctor {
-  FType F;
-  std::tuple<Args...> args_tuple;
-
-  KernelFunctor(FType F, Args... args) : F{F}, args_tuple(args...) {}
-
-  template <std::size_t... Is>
-  void call_with_args(sycl::nd_item<3> items, std::index_sequence<Is...>) const {
-      // Unpack the tuple and pass the arguments to the function using `std::get`.
-      F(std::get<Is>(args_tuple)...);
-  }
-
-  void operator()(sycl::nd_item<3> items) const {
-    [[clang::always_inline]] call_with_args(items, std::make_index_sequence<sizeof...(Args)>{});
-  }
-};
-
 template <auto F, typename... Args>
 std::enable_if_t<std::is_invocable_v<decltype(F), Args...>, sycl::event>
 launch(const sycl::nd_range<3> &range, sycl::queue q, Args... args) {
@@ -85,8 +64,8 @@ launch(const sycl::nd_range<3> &range, sycl::queue q, Args... args) {
       std::is_same<std::invoke_result_t<decltype(F), Args...>, void>::value,
       "SYCL kernels should return void");
 
-  KernelFunctor kernel_functor(F, args...);
-  return q.parallel_for(range, kernel_functor);
+  return q.parallel_for(
+      range, [=](sycl::nd_item<3>) { [[clang::always_inline]] F(args...); });
 }
 
 } // namespace detail

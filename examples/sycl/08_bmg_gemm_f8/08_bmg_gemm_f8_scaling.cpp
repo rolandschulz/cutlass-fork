@@ -212,20 +212,10 @@ struct ExampleRunner {
   // Methods
   //
   template <typename SrcT, typename DstT>
-  struct ConvertFunctor {
-    SrcT* d_src;
-    DstT* d_dst;
-
-    ConvertFunctor(SrcT* src, DstT* dst) : d_src(src), d_dst(dst) {}
-    void operator() (sycl::id<1> id) {
-      d_dst[id] = static_cast<DstT>(d_src[id]);
-    }
-  };
-
-  template <typename SrcT, typename DstT>
   void convert_fp8_to_fp16(const SrcT* d_src, DstT* d_dst, size_t size) {
-    ConvertFunctor kernel_functor(d_src, d_dst);
-    cutlasscompat::get_default_queue().parallel_for(size, kernel_functor).wait();
+    cutlasscompat::get_default_queue().parallel_for(size, [=](auto indx) {
+      d_dst[indx] = static_cast<DstT>(d_src[indx]);
+    }).wait();
   }
 
   bool verify(const Options &options) {
